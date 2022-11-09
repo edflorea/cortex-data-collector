@@ -2,6 +2,7 @@ from cortexPyAdapter import CortexAdapter
 import csv
 from datetime import datetime
 import time
+import os
 import pygame
 
 class Train():
@@ -19,10 +20,22 @@ class Train():
 
         self.pygame_events = user_events
 
+        self.trainingInstances = {
+            "neutral": 0,
+            "push": 0,
+            "pull": 0
+        }
+
+
         self.save_data = False
         self.com_data = []
         self.pow_data = []
         self.eeg_data = []
+
+        self.parent_dir = os.getcwd()
+        self.start_time = datetime.now().strftime("%m-%d-%Y_%H-%M-%S")
+        self.save_dir = os.path.join(self.parent_dir, f'data/{self.start_time}')
+        os.mkdir(self.save_dir)
 
     
     def setup(self, profileName):
@@ -33,6 +46,7 @@ class Train():
 
     def train(self, command):
         self.command = command
+        self.trainingInstances[command] += 1
         self.train_mc_action('start')
 
 
@@ -93,6 +107,10 @@ class Train():
         elif train_event == 'MC_Completed' or train_event == 'MC_Rejected':
             print('[Train message] Training done.')
 
+            # parent_dir = os.getcwd()
+            # date_time = datetime.now().strftime("%m-%d-%Y_%H-%M-%S")
+            # os.mkdir(os.path.join(parent_dir, f'data/training_{self.command}_{date_time}'))
+
             if len(self.com_data) != 0:
                 self.write_to_csv('com', self.com_data)
             if len(self.pow_data) != 0:
@@ -106,15 +124,17 @@ class Train():
     
     def write_to_csv(self, type, data):
         print(f'[Train message] Saving {type} data...')
-        date_time = datetime.now().strftime("%m-%d-%Y_%H-%M-%S")
+        trainNum = self.trainingInstances[self.command]
+
         if type == 'com':
-            file_name = f'./data/com/training_{date_time}.csv'
+            file_name = f'{self.save_dir}/training_{self.command}_{trainNum}_com.csv'
+            # file_name = f'./data/com/training_{date_time}.csv'
             field_names = ['action', 'power', 'time']
         elif type == 'pow':
-            file_name = f'./data/pow/training_{date_time}.csv'
+            file_name = f'{self.save_dir}/training_{self.command}_{trainNum}_pow.csv'
             field_names = ['pow', 'time']
         elif type == 'eeg':
-            file_name = f'./data/eeg/training_{date_time}.csv'
+            file_name = f'{self.save_dir}/training_{self.command}_{trainNum}_eeg.csv'
             field_names = ['eeg', 'time']
 
         with open(file_name, 'w', newline='') as f:
